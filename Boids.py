@@ -21,17 +21,16 @@ number_frames = int(timestop/dt) + 1
 # play with these factors to change magnitude of forces
 
 allignment_factor = 1       # allignment with nearby boids
-
 lin_collision_factor = 6    # collision avoidance 
-
 com_factor = 3      # centre of mass force
 
-wall_collision_factor = 8
+# wall_collision_factor = 8
 
 boid_speed = 2  # metres/sec
 
-
-def get_angle_diff(main, other):        # find smallest difference of two headings, with correct sign
+# function find smallest difference of two headings, with correct sign
+# all angles stored in radians, where 0 is 'east'
+def get_angle_diff(main, other):        
     diff = other - main
     if diff > mt.pi:
         diff = diff - 2*mt.pi
@@ -39,13 +38,16 @@ def get_angle_diff(main, other):        # find smallest difference of two headin
         diff = diff + 2*mt.pi
     return(diff)
 
-def get_arctan(x,y):                    # use arctan to generate headings but in the format 0 < theta < 2*pi
+# use arctan to generate headings but in the format 0 < theta < 2*pi
+def get_arctan(x,y):     
     theta = mt.atan2(y,x)
     if theta < 0:
         theta = theta + 2 * mt.pi
     return(theta)
 
-class Box:  	                   # ignore box stuff, thats to try and implement wall avoidance later
+# ignore box stuff, thats to try and implement wall avoidance later
+# this class would contain all points that boids would attempt to avoid collision with
+class Box:  	                   
     def __init__(self, width, height):
         self.width = width
         self.height = height
@@ -53,37 +55,27 @@ class Box:  	                   # ignore box stuff, thats to try and implement w
         self.x_list = []
         self.y_list = []
 
-box = Box(10,10)
-
-radius = 1
-for i in range(0,101):
-    box.obstacles.append([5 + radius*mt.cos(i*mt.pi/50),5 + radius*mt.sin(i*mt.pi/50)])
-
-for point in box.obstacles:
-    box.x_list.append(point[0])
-    box.y_list.append(point[1])
-    
-    
+# define a Boid class to contain the position, speed and heading of each boid
 class Boid:
     def __init__(self, position, direction, speed):
         
         self.position = position
         self.direction = direction
         self.speed = speed
-        self.nearby_boids = []
-        self.is_near = False
+        self.nearby_boids = []      # array of all boids that are within view
+        self.is_near = False        # true if there are any boids within view
     
-    def find_new_position(self):        # using current position and heading, generate next position
+    def find_new_position(self):        # function to generate next position using current position and heading,
         self.position[0] = self.position[0] + mt.cos(self.direction) * self.speed * dt
         self.position[1] = self.position[1] + mt.sin(self.direction) * self.speed * dt
                 
-        for i in range(0,2):        # if the next position is outside the boundaries, move it to the oppisite side
+        for i in range(0,2):        # if the next position is outside the boundaries, move it to the opposite side
             if self.position[i] > width:
                 self.position[i] = self.position[i] - width
             if self.position[i] < 0:
                 self.position[i] = self.position[i] + width
 
-    def find_nearby_boids(self):        # generate list of boids that are within the view distance
+    def find_nearby_boids(self):        # function to generate list of boids that are within the view distance
         for boid in boids:
             distance = mt.sqrt((boid.position[0] - self.position[0])**2 + (boid.position[1] - self.position[1])**2)
             if distance < view_dist and distance != 0:
@@ -120,7 +112,7 @@ class Boid:
                 else:
                     self.direction = self.direction + dt * lin_collision_factor * mt.exp( -distance)
 
-    def avoid_wall_collision(self):     #ignore this, it doesn't work yet lol
+    def avoid_wall_collision(self):     # function to implement an obstacle avoidance capability
 
         nearby_obstacles = []
         rel_headings = []
@@ -154,9 +146,6 @@ class Boid:
                     self.direction = self.direction + dt * wall_collision_factor * 1/(distance_for_min_bearing)
 
         
-
-
-            
     def get_com_heading(self):      # generate centre of mass of neighbours and heading relative to current boid
 
         avg_x = 0
@@ -181,7 +170,7 @@ class Boid:
             self.direction = self.direction + dt * difference * com_factor
         
         
-def get_boid_directions():      # makes list of boid directions for the animation
+def get_boid_directions():      # function to make list of boid directions for the animation
     cosines = []
     sines = []
     for boid in boids:
@@ -190,30 +179,26 @@ def get_boid_directions():      # makes list of boid directions for the animatio
     return[cosines, sines]
 
 
-            
-boids = []
+# ------------- MAIN SCRIPT ----------------
 
 # initialise boids randomly distributed in space
+boids = []
 for i in range(0, n_boids ):
     boids.append(Boid(  [10*random(), 10*random()]  , random()*2*mt.pi, boid_speed))
-
-
 
 # initialise list of timesteps containing list for x and y coords, for the animation
 x_coords = [[]]
 y_coords = [[]]
 
-
 fig = pl.figure()
 images = []
-
 
 # for each boid, record boid position in timestep
 for boid in boids:
     x_coords[-1].append(boid.position[0])
     y_coords[-1].append(boid.position[1])
 
-for timestep in range(0, number_frames):
+for timestep in range(0, number_frames):    # for every timestep:
     
     x_coords.append([])     #insert x and y coordinate list into timestep list
     y_coords.append([])  
@@ -222,7 +207,7 @@ for timestep in range(0, number_frames):
         
         boid.find_nearby_boids()    # create list of nearby boids
 
-        if boid.is_near == True:        
+        if boid.is_near == True:        # if there are any boids within view:
 
             boid.get_avg_direction()            # find average direction of nearby boids
             boid.get_com_heading()             # find direction of centre of mass of nearby boids
@@ -247,8 +232,9 @@ for timestep in range(0, number_frames):
         x_coords[-1].append(boid.position[0])
         y_coords[-1].append(boid.position[1])
     
-    directions = get_boid_directions()
+    directions = get_boid_directions()  # store all current boid headings for animation
     
+    # produce a frame for the animation
     image = pl.quiver(x_coords[timestep], y_coords[timestep], directions[0], directions[1], color = 'olive', animated=True )
 
     pl.axis([0, 10, 0, 10])
